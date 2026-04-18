@@ -4,7 +4,6 @@ import re
 with open("phonebook_raw.csv", encoding="utf-8") as f:
     rows = csv.reader(f, delimiter=",")
     contacts_list = list(rows)
-    #print(contacts_list)
 
 
 for idx, contact in enumerate(contacts_list):
@@ -13,8 +12,11 @@ for idx, contact in enumerate(contacts_list):
     else:
         fio_list = contact[:3]
         fio = ' '.join(fio_list).split()
-        for i in range(len(fio)):
-            contacts_list[idx][i] = fio[i]
+        for i in range(3):
+            if i < len(fio):
+                contacts_list[idx][i] = fio[i]
+            else:
+                contacts_list[idx][i] = ''
 
 
 for contact in contacts_list[1:]:
@@ -22,21 +24,44 @@ for contact in contacts_list[1:]:
         continue
     else:
         number = contact[5]
-        number_pattern = r'(?:\+7|8)\s*(?:\(?(\d{3})\)?)(?:\s*|-)(\d{3})(?:[\s-]?)(\d{2})(?:[\s-]?)(\d{2})'
-        replace_pattern = r'+7(\1)\2-\3-\4'
-        contact[5] = re.sub(number_pattern, replace_pattern, number)
-        if "доб" in contact[5]:
-            number = contact[5]
-            add_number_pattern = r'(?:\(?(доб)\.?)\s*(\d+)(?:\)?)'
-            replace_pattern = r'\1.\2'
-            contact[5] = re.sub(add_number_pattern, replace_pattern, number)
+        number_pattern = (
+                        r'(?:\+7|8)[\s\-()]*'
+                        r'(\d{1})[\s\-()]*'
+                        r'(\d{1})[\s\-()]*'
+                        r'(\d{1})[\s\-()]*'
+                        r'(\d{1})[\s\-()]*'
+                        r'(\d{1})[\s\-()]*'
+                        r'(\d{1})[\s\-()]*'
+                        r'(\d{1})[\s\-()]*'
+                        r'(\d{1})[\s\-()]*'
+                        r'(\d{1})[\s\-()]*'
+                        r'(\d{1})[\s\-()]*'
+                        r'(?:(доб)[\s\-().]*'
+                        r'(\d{4})[\s\-().]*)?'
+        )
+
+        matches = re.findall(number_pattern, number)
+        formated_number = '+7'
+        if matches:
+            for idx, match in enumerate(matches[0]):
+                if not match:
+                    break
+
+                if idx in range(10):
+                    formated_number +=match
+                elif idx == 10:
+                    formated_number +=' ' + match
+                elif idx == 11:
+                    formated_number +='.' + match
+
+        contact[5] = formated_number
 
 
 result = []
 contacts_dict = {}
 for contact in contacts_list[1:]:
-    print(contacts_dict)
     key = (contact[0], contact[1])
+    #key = (contact[0], contact[1], contact[2])         #Если считать, что есть везде отчества.
     if key not in contacts_dict:
         contacts_dict[key] = contact
     else:
@@ -49,11 +74,8 @@ result.append(contacts_list[0])
 result.extend(contacts_dict.values())
 
 
-# TODO 2: сохраните получившиеся данные в другой файл
-# код для записи файла в формате CSV
 with open("phonebook.csv", "w", encoding="utf-8", newline='') as f:
     datawriter = csv.writer(f, delimiter=',')
-    # Вместо contacts_list подставьте свой список
     datawriter.writerows(result)
 
 
